@@ -45,6 +45,7 @@ def FCFS_scheduling(process_list):
         waiting_time = waiting_time + (current_time - process.arrive_time)
         current_time = current_time + process.burst_time
     average_waiting_time = waiting_time/float(len(process_list))
+    print('Average waiting time = '+str(average_waiting_time))
     return schedule, average_waiting_time
 
 #Input: process_list, time_quantum (Positive Integer)
@@ -67,10 +68,12 @@ def RR_scheduling(process_list, time_quantum ):
             if(process.burst_time > time_quantum):
                 current_time = current_time + time_quantum
                 process.burst_time = process.burst_time - time_quantum
+                process.arrive_time=current_time
             else:
                 current_time = current_time + process.burst_time
                 rr_list.remove(process)
     average_waiting_time = waiting_time/float(len(process_list))
+    print('Average waiting time = '+str(average_waiting_time))
     return schedule, average_waiting_time
 
 
@@ -100,6 +103,7 @@ def SRTF_scheduling(process_list):
                 if(srtf_list[0].arrive_time-current_time<processing[0].burst_time):
                     processing[0].burst_time = processing[0].burst_time - (srtf_list[0].arrive_time-current_time)
                     current_time = srtf_list[0].arrive_time
+                    processing[0].arrive_time = current_time
                     shortest_remaining_time = processing[0].burst_time
                 elif(len(processing)>1):
                     processing = sorted(processing, key=lambda remaining: remaining.burst_time)
@@ -126,6 +130,7 @@ def SRTF_scheduling(process_list):
 
 
     average_waiting_time = waiting_time/float(len(process_list))
+    print('Average waiting time = '+str(average_waiting_time))
     return schedule, average_waiting_time
 
 def SJF_scheduling(process_list, alpha):
@@ -138,7 +143,6 @@ def SJF_scheduling(process_list, alpha):
     last_guess = 0
     time_to_process = 0
     first_time = True
-    done_flag = True
     sjf_list = copy.deepcopy(process_list)
 
     while sjf_list:
@@ -147,59 +151,47 @@ def SJF_scheduling(process_list, alpha):
                 processing.append(process)
                 sjf_list.remove(process)
             elif(sjf_list[0].arrive_time>current_time and not processing):
-                print('this happened')
                 current_time=process.arrive_time
-        
+        processing = sorted(processing, key=lambda remaining: remaining.burst_time)
         if(sjf_list):
-            if(done_flag==True):
-                if(processing):
-                    if(first_time):
-                        processing = sorted(processing, key=lambda remaining: remaining.burst_time)
-                        schedule.append((current_time, processing[0].id))
-                        waiting_time = waiting_time + (current_time - processing[0].arrive_time)
-                        actual_time = processing[0].burst_time
-                        current_time = current_time+initial_guess
-                        last_guess = initial_guess
-                        if((processing[0].burst_time-initial_guess)<=0):
-                            processing.remove(processing[0])
-                            done_flag=True
-                        else:
-                            processing[0].burst_time=processing[0].burst_time-initial_guess
-                            done_flag=False
-                        time_to_process = (alpha*actual_time)+((1-alpha)*last_guess)
-                        first_time=False
-                        
-                        continue
-
-                    time_to_process = (alpha*actual_time)+((1-alpha)*last_guess)
-                    processing = sorted(processing, key=lambda remaining: remaining.burst_time)
+            if(processing):
+                if(first_time):
                     schedule.append((current_time, processing[0].id))
                     waiting_time = waiting_time + (current_time - processing[0].arrive_time)
                     actual_time = processing[0].burst_time
-                    current_time = current_time+math.floor(time_to_process)
-                    last_guess = time_to_process
-                    if((processing[0].burst_time-time_to_process)<=0):
-                        processing.remove(processing[0])
-                        done_flag=True
+                    current_time = current_time+initial_guess
+                    last_guess = initial_guess
+                    if((processing[0].burst_time-initial_guess)<=0):
+                        current_time = current_time+initial_guess
                     else:
-                        processing[0].burst_time=processing[0].burst_time-time_to_process
-                        done_flag=False
+                        current_time = processing[0].burst_time
+                    processing.remove(processing[0])
+                    time_to_process = (alpha*actual_time)+((1-alpha)*last_guess)
+                    first_time=False
                     
-            else:
-                current_time = current_time+math.floor(time_to_process)
+                    continue
+
+                time_to_process = (alpha*actual_time)+((1-alpha)*last_guess)
+                schedule.append((current_time, processing[0].id))
+                waiting_time = waiting_time + (current_time - processing[0].arrive_time)
+                actual_time = processing[0].burst_time
                 last_guess = time_to_process
                 if((processing[0].burst_time-time_to_process)<=0):
                     processing.remove(processing[0])
-                    done_flag=True
+                    current_time = current_time+math.floor(time_to_process)
+                    #done_flag=True
                 else:
-                    processing[0].burst_time=processing[0].burst_time-time_to_process
-                    done_flag=False
+                    current_time = current_time + processing[0].burst_time
+                    processing.remove(processing[0])
+                    #done_flag=False
+            else:
+                current_time = sjf_list[0].arrive_time
+
         else:
-            for remaining_process in processing[:]:
-                if(len(processing)>1):
-                    if(done_flag==True):
+            while(processing):
+                for remaining_process in processing[:]:
+                    if(len(processing)>1):
                         time_to_process = (alpha*actual_time)+((1-alpha)*last_guess)
-                        processing = sorted(processing, key=lambda remaining: remaining.burst_time)
                         schedule.append((current_time, processing[0].id))
                         waiting_time = waiting_time + (current_time - processing[1].arrive_time)
                         actual_time = processing[0].burst_time
@@ -207,13 +199,18 @@ def SJF_scheduling(process_list, alpha):
                         last_guess = time_to_process
                         if((processing[0].burst_time-initial_guess)<=0):
                             processing.remove(processing[0])
-                            done_flag=True
+                            current_time = current_time+math.floor(time_to_process)
                         else:
-                            processing[0].burst_time=processing[0].burst_time-initial_guess
-                            done_flag=False 
+                            current_time = current_time + processing[0].burst_time
+                            processing.remove(processing[0])
+                    else:
+                        schedule.append((current_time, processing[0].id))
+                        waiting_time = waiting_time + (current_time - processing[0].arrive_time)
+                        processing.remove(processing[0])
 
 
     average_waiting_time = waiting_time/float(len(process_list))
+    print('Average waiting time = '+str(average_waiting_time))
     return schedule, average_waiting_time
 
 
